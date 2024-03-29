@@ -1,0 +1,13 @@
+train: ./train/images
+val: ./valid/images
+test: ./test/images
+
+nc: 2
+names: ['PCB2', 'pcb']
+
+roboflow:
+  workspace: jisungsolution
+  project: pcb-detect-zzcvc
+  version: 2
+  license: Private
+  url: https://app.roboflow.com/jisungsolution/pcb-detect-zzcvc/2

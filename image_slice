@@ -1,0 +1,54 @@
+import cv2
+import os
+
+def extract_frames(video_path, target_dir, spacing):
+    """
+    Extracts frames from a video file at a given spacing.
+
+    Parameters:
+    - video_path: Path to the video file.
+    - target_dir: Directory where the extracted frames will be saved.
+    - spacing: Spacing between frames to extract, in seconds.
+    """
+    
+    # Create the target directory if it doesn't exist
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+    
+    # Open the video file
+    cap = cv2.VideoCapture(video_path)
+    
+    # Get video frame rate
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    
+    # Calculate the spacing in frames
+    frame_spacing = int(fps * spacing)
+    
+    frame_count = 0
+    extracted_count = 0
+    
+    while True:
+        # Read frame
+        success, frame = cap.read()
+        
+        # If frame is read correctly, success is True
+        if not success:
+            break  # Reached the end of the video
+        
+        # Check if this frame is one we want to save
+        if frame_count % frame_spacing == 0:
+            # Save the frame
+            cv2.imwrite(os.path.join(target_dir, f"frame_{extracted_count:04d}.png"), frame)
+            extracted_count += 1
+        
+        frame_count += 1
+    
+    cap.release()
+    print(f"Extracted {extracted_count} frames to {target_dir}")
+
+# Example usage
+video_path = 'pcb5.mp4'  # Update this path
+target_dir = 'images'  # Update this path
+spacing = 2  # Extract a frame every 5 seconds
+
+extract_frames(video_path, target_dir, spacing)

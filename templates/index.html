@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Stream</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="icon" href="/static/favorite.png" type="image/x-icon">
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            background: url('/static/main.png') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+        }
+        .video-container {
+            width: 100%;
+            max-width: 650px;
+            margin: auto;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        #videoElement {
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 15px;
+        }
+        .sidebar {
+            height: 50%;
+            width: 0;
+            position: fixed;
+            z-index: 1;
+            top: 150px; /* 원하는 위치로 조정 */
+            left: 0;
+            background-color: #111;
+            overflow-x: hidden;
+            transition: 0.5s;
+            padding-top: 60px;
+        }
+        .sidebar a, .sidebar button {
+            padding: 8px 15px;
+            text-decoration: none;
+            font-size: 20px;
+            color: #818181;
+            display: block;
+            transition: 0.3s;
+            border: none;
+            background: none;
+        }
+        .sidebar a:hover, .sidebar button:hover {
+            color: #f1f1f1;
+        }
+        .sidebar .closebtn {
+            position: absolute;
+            top: 0;
+            right: 25px;
+            font-size: 36px;
+            margin-left: 50px;
+        }
+        .openbtn {
+            position: fixed;
+            top: 0; /* 최상단에 위치하도록 설정 */
+            left: 0; /* 왼쪽에 위치하도록 설정 */
+            z-index: 2;
+            width: 200px
+        }
+        @media screen and (max-height: 450px) {
+          .sidebar {padding-top: 15px;}
+          .sidebar a, .sidebar button {font-size: 18px;}
+        }
+
+        .status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            padding: 10px 0;
+            font-size: 16px;
+        }
+
+        /* Fade in/out animation */
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        .modal-content {
+            animation: fadeInOut 0.3s ease;
+        }
+        .modal-body,
+        .modal-title {
+            color: pink; /* 텍스트의 원하는 색상으로 변경하세요 */
+        }
+    </style>
+</head>
+<body>
+
+<div class="status-bar" id="statusBar">서비스 상태: 대기중</div>
+
+<div id="mySidebar" class="sidebar">
+  <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">×</a>
+  <button onclick="goHome()">홈</button>
+  <button onclick="startService()">서비스시작</button>
+  <button onclick="confirmStopService()">서비스종료</button>
+  <button onclick="location.href='/editConfig'">환경설정</button>
+  <button onclick="showVideo()">영상보기</button>
+</div>
+
+<button class="btn btn-primary openbtn" onclick="openNav()">☰ Open Sidebar</button>
+
+<div class="container">
+    <h1 id="videoStreamTitle" class="text-center">실시간 비디오 스트림</h1>
+    <div class="video-container">
+        <img id="videoElement" src="" alt="Video stream loading..." style="display:none;">
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="stopServiceModal" tabindex="-1" role="dialog" aria-labelledby="stopServiceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="stopServiceModalLabel">서비스정지확인</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          서비스를 정지할까요(정지하면 카운트할수 없습니다)?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">아니오</button>
+          <button type="button" class="btn btn-danger" onclick="stopService(); $('#stopServiceModal').modal('hide');">예</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+    var serviceStatus = "중지"; // 서비스 상태를 추적하는 전역 변수
+
+    function openNav() {
+      document.getElementById("mySidebar").style.width = "250px";
+    }
+    
+    function closeNav() {
+      document.getElementById("mySidebar").style.width = "0";
+    }
+    
+    function startService() {
+        fetch("/startService", {method: 'GET'})
+        .then(response => response.json())
+        .then(data => {
+            console.log(data.message);
+            document.getElementById('statusBar').innerText = `서비스 상태: ${data.message}`;
+            document.body.style.background = "linear-gradient(to right, #6a11cb 0%, #2575fc 100%)";
+            
+            serviceStatus = "시작"; // 서비스 상태 업데이트
+            showVideo(); // 서비스 시작 시 영상보기를 자동으로 호출
+            
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('statusBar').innerText = `서비스 상태: 오류 발생`;
+        });
+    }
+    
+    function confirmStopService() {
+        $('#stopServiceModal').modal('show');
+    }
+    
+    function stopService() {
+        fetch("/stopService", {method: 'GET'})
+        .then(response => response.json())
+        .then(data => {
+            console.log(data.message);
+            videoElement.src = "/static/no_signal.jpeg"; // 실시간 비디오 스트림 URL
+            videoElement.style.display = "block";
+            document.getElementById('statusBar').innerText = `서비스 상태: ${data.message}`;
+            document.body.style.background = "linear-gradient(to right, #6a11cb 0%, #2575fc 100%)";
+            document.getElementById('videoStreamTitle').innerText = "서비스 중지상태 입니다";
+            closeNav(); // 사이드바를 자동으로 닫습니다.
+            serviceStatus = "중지"; // 서비스 상태 업데이트
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('statusBar').innerText = `서비스 상태: 오류 발생`;
+        });
+    }
+
+    function checkVideoStreamStatus() {
+        fetch("/checkVideoStreamStatus", {method: 'GET'})
+        .then(response => response.json())
+        .then(data => {
+            console.log(data.message);
+            document.getElementById('statusBar').innerText = `영상전송 서비스 상태: ${data.message}`;
+            document.body.style.background = "linear-gradient(to right, #6a11cb 0%, #2575fc 100%)";
+            closeNav(); // 사이드바를 자동으로 닫습니다.
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('statusBar').innerText = `영상전송 서비스 상태: 오류 발생`;
+        });
+    }
+    function showVideo() {
+
+        if (serviceStatus === "중지") {
+            alert("서비스를 먼저 시작해주세요.");
+            return; // 함수 실행을 여기서 중단
+        }
+        
+        var videoElement = document.getElementById('videoElement');
+        videoElement.src = "/showVideo"; // 실시간 비디오 스트림 URL
+        videoElement.style.display = "block";
+        document.body.style.background = "linear-gradient(to right, #6a11cb 0%, #2575fc 100%)";
+        // <h1> 태그의 텍스트 변경
+        document.getElementById('videoStreamTitle').innerText = "영상 수신중...";
+        closeNav(); // 사이드바를 자동으로 닫습니다.
+    }
+
+    function goHome() {
+        videoElement.src = ""; // 실시간 비디오 스트림 URL
+        videoElement.style.display = "none";
+        document.body.style.background = "linear-gradient(to right, #6a11cb 0%, #2575fc 100%)";
+    }
+    
+</script>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

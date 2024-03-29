@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Configuration</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container mt-5">
+    <h2>Edit Configuration</h2>
+    <form action="/editConfig" method="post">
+        <div class="form-group">
+            <textarea class="form-control" name="content" rows="10">{{ content }}</textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+        <!-- 돌아가기 버튼 추가 -->
+        <button type="button" class="btn btn-secondary" onclick="history.back();">Back</button>
+    </form>
+</div>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

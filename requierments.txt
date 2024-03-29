@@ -1,0 +1,8 @@
+opencv-python==4.5.5.62
+cx_Oracle==8.2.1
+pandas==1.3.4
+numpy==1.21.4
+pyzbar==0.1.8
+playsound==1.3.0
+flask==2.0.2
+Pillow==8.4.0
