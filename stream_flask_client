@@ -1,0 +1,44 @@
+import cv2
+import socket
+import struct
+import pickle
+
+def send_video():
+    CLIENT_IP = "localhost"
+    PORT = 9999
+
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_socket.connect((CLIENT_IP, PORT))
+
+    cap = cv2.VideoCapture(0)
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            print("Failed to grab frame")
+            break
+
+        # Encode the frame in JPEG format
+        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]  # Adjust JPEG quality
+        result, frame_encoded = cv2.imencode('.jpg', frame, encode_param)
+        if not result:
+            print("Failed to encode frame")
+            continue
+
+        # Serialize frame
+        data = pickle.dumps(frame_encoded, protocol=pickle.HIGHEST_PROTOCOL)
+        
+        # Send message size and data
+        message_size = struct.pack(">L", len(data))
+        client_socket.sendall(message_size + data)
+
+        cv2.imshow('Client - Sending Video', cv2.imdecode(frame_encoded, 1))
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    client_socket.close()
+    cv2.destroyAllWindows()
+
+if __name__ == '__main__':
+    send_video()

@@ -114,6 +114,31 @@ def editConfig():
             print("유니코드문자처리오류" , e)
                 
         return render_template("editConfig.html", content=content)
+    
+@app.route("/upload_frame", methods=["POST"])
+def upload_frame():
+    global outputFrame, lock, service_active
+    if service_active:
+        # Convert string of image data to uint8
+        nparr = np.fromstring(request.data, np.uint8)
+        # Decode image
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        # Optional: Any processing on the image
+        # Example: Display the image
+        cv2.imshow("Received Frame", img)
+        cv2.waitKey(1)
+
+        # Update the global frame to be the newly received frame
+        with lock:
+            outputFrame = img
+
+        return Response(status=200)
+    else:
+        return jsonify({"error": "Service not active"}), 403
+    
+    
+
 ############################################################
 # 마우스 이벤트 처리를 위한 변수들
 ############################################################
@@ -582,6 +607,7 @@ def main():
     cv2.destroyAllWindows()
     print( time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+" >>영상처리화면종료")
     service_active = False    
+    
 if __name__ == '__main__':
     print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+" >>스트림서버시작")
     app.run(host="0.0.0.0", port=8000, debug=True, use_reloader=True)
