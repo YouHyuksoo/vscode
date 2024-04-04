@@ -1,5 +1,5 @@
 import cv2
-import cx_Oracle
+import oracledb
 import pandas as pd
 import numpy as np
 import sys
@@ -199,7 +199,7 @@ def mouse_event(event, x, y, flags, param):
 ##################################################
 # Oracle Database 연결 설정
 ##################################################
-dsn = cx_Oracle.makedsn('107.105.20.170', 1521, service_name='SMVNPDB')
+dsn = oracledb.makedsn('107.105.20.170', 1521, service_name='SMVNPDB')
 # 데이터베이스에 데이터 삽입하는 함수 정의
 def insert_data(barcode_data , object_name, object_id, current_time):
     global cursor , connection
@@ -352,12 +352,12 @@ def main():
     if use_db_yn =='Y':
         try:
             # 데이터베이스에 연결 시도
-            connection = cx_Oracle.connect(user='INFINITY21_JSMES', password='INFINITY21_JSMES', dsn=dsn)
+            connection = oracledb.connect(user='INFINITY21_JSMES', password='INFINITY21_JSMES', dsn=dsn)
             cursor = connection.cursor()
             # 여기에 데이터베이스 작업을 수행하는 코드를 추가할 수 있습니다.
             print("데이터베이스에 성공적으로 연결되었습니다.")
             
-        except cx_Oracle.DatabaseError as e:
+        except oracledb.DatabaseError as e:
             error, = e.args
             print(f"데이터베이스 연결 실패: {error.code} - {error.message}")
             

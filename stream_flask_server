@@ -1,10 +1,35 @@
+from flask import Flask, Response
 import socket
 import cv2
 import numpy as np
 import struct
 import pickle
+import threading
+
+# Initialize Flask
+app = Flask(__name__)
+
+# Global variable to store video frames
+frame_global = None
+
+@app.route('/video')
+def video():
+    # Function to stream video frames to the client
+    def generate():
+        global frame_global
+        while True:
+            if frame_global is not None:
+                (flag, encodedImage) = cv2.imencode(".jpg", frame_global)
+                if not flag:
+                    continue
+                yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + bytearray(encodedImage) + b'\r\n')
+            else:
+                yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + b'\r\n')
+    
+    return Response(generate(), mimetype = "multipart/x-mixed-replace; boundary=frame")
 
 def receive_video():
+    global frame_global
     HOST = ''
     PORT = 9999
 
@@ -17,16 +42,15 @@ def receive_video():
     print('Socket now listening')
 
     conn, addr = s.accept()
-    print('Connected with ' + addr[0] + ':' + str(addr[1]))  # Display client's IP and Port
+    print('Connected with ' + addr[0] + ':' + str(addr[1]))
 
     data = b""
     payload_size = struct.calcsize(">L")
-    print("payload_size: {}".format(payload_size))
 
     while True:
         while len(data) < payload_size:
             data += conn.recv(4096)
-
+        
         packed_msg_size = data[:payload_size]
         data = data[payload_size:]
         msg_size = struct.unpack(">L", packed_msg_size)[0]
@@ -37,10 +61,10 @@ def receive_video():
         frame_data = data[:msg_size]
         data = data[msg_size:]
 
-        frame = pickle.loads(frame_data, fix_imports=True, encoding="bytes")
-        frame = cv2.imdecode(frame, cv2.IMREAD_COLOR)
+        frame_global = pickle.loads(frame_data, fix_imports=True, encoding="bytes")
+        frame_global = cv2.imdecode(frame_global, cv2.IMREAD_COLOR)
 
-        cv2.imshow('Server - Received Video', frame)
+        cv2.imshow('Server - Received Video', frame_global)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
@@ -48,4 +72,8 @@ def receive_video():
     s.close()
 
 if __name__ == '__main__':
-    receive_video()
+    # Start the flask thread
+    threading.Thread(target=lambda: app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)).start()
+
+    # Start the video receiving and displaying thread
+    threading.Thread(target=receive_video).start()

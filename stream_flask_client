@@ -2,43 +2,59 @@ import cv2
 import socket
 import struct
 import pickle
+import time
 
 def send_video():
     CLIENT_IP = "localhost"
     PORT = 9999
 
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((CLIENT_IP, PORT))
-
+    # 비디오 캡처 객체를 먼저 생성합니다.
     cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("Camera could not be opened.")
+        return
 
     while True:
-        ret, frame = cap.read()
-        if not ret:
-            print("Failed to grab frame")
-            break
+        try:
+            # 소켓 생성 및 서버에 연결 시도
+            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client_socket.connect((CLIENT_IP, PORT))
+            print("Connected to server.")
 
-        # Encode the frame in JPEG format
-        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]  # Adjust JPEG quality
-        result, frame_encoded = cv2.imencode('.jpg', frame, encode_param)
-        if not result:
-            print("Failed to encode frame")
-            continue
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    print("Failed to grab frame")
+                    break
 
-        # Serialize frame
-        data = pickle.dumps(frame_encoded, protocol=pickle.HIGHEST_PROTOCOL)
-        
-        # Send message size and data
-        message_size = struct.pack(">L", len(data))
-        client_socket.sendall(message_size + data)
+                # Encode the frame in JPEG format
+                encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]  # Adjust JPEG quality
+                result, frame_encoded = cv2.imencode('.jpg', frame, encode_param)
+                if not result:
+                    print("Failed to encode frame")
+                    continue
 
-        cv2.imshow('Client - Sending Video', cv2.imdecode(frame_encoded, 1))
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+                # Serialize frame
+                data = pickle.dumps(frame_encoded, protocol=pickle.HIGHEST_PROTOCOL)
 
-    cap.release()
-    client_socket.close()
-    cv2.destroyAllWindows()
+                # Send message size and data
+                message_size = struct.pack(">L", len(data))
+                client_socket.sendall(message_size + data)
+
+                cv2.imshow('Client - Sending Video', cv2.imdecode(frame_encoded, 1))
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+        except Exception as e:
+            print("Connection lost... attempting to reconnect")
+            print(e)
+            client_socket.close()
+            time.sleep(5)  # 잠시 기다린 후 재시도
+            continue  # 재접속 시도
+        finally:
+            # 예외가 발생하든, 정상적으로 처리가 완료되든 항상 실행됩니다.
+            # 이곳에서 자원 정리를 수행합니다.
+            cap.release()
+            cv2.destroyAllWindows()
 
 if __name__ == '__main__':
     send_video()
